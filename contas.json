@@ -1,16 +1,3 @@
 {
-    "usuarios": [
-        {
-            "nome": "Usuário Teste",
-            "usuario": "admin",
-            "email": "teste@gmail.com",
-            "senha": "password123"
-        },
-        {
-            "nome": "ddd",
-            "usuario": "ddd",
-            "email": "ddd@gmail.com",
-            "senha": "ddd"
-        }
-    ]
+    "usuarios": []
 }

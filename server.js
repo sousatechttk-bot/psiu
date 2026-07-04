@@ -9,9 +9,10 @@ const app = express();
 app.use(express.json());
 app.use(cors()); 
 
-const ARQUIVO_JSON = 'contas.json';
+// CAMINHO ABSOLUTO E SEGURO PARA O ARQUIVO JSON
+const ARQUIVO_JSON = path.join(__dirname, 'contas.json');
 
-// FAZ O NODE MOSTRAR O SEU HTML AUTOMATICAMENTE
+// Faz o Node mostrar o seu HTML automaticamente
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -22,7 +23,10 @@ app.get('/usuarios', (req, res) => {
         return res.json({ usuarios: [] });
     }
     fs.readFile(ARQUIVO_JSON, 'utf8', (err, data) => {
-        if (err) return res.status(500).json({ erro: "Erro ao ler o arquivo" });
+        if (err) {
+            console.error("Erro ao ler:", err);
+            return res.status(500).json({ erro: "Erro ao ler o arquivo" });
+        }
         res.json(JSON.parse(data || '{"usuarios":[]}'));
     });
 });
@@ -31,8 +35,14 @@ app.get('/usuarios', (req, res) => {
 app.post('/cadastrar', (req, res) => {
     const novoUsuario = req.body;
 
+    // Se o arquivo não existir, cria ele na raiz do projeto de forma síncrona antes de ler
     if (!fs.existsSync(ARQUIVO_JSON)) {
-        fs.writeFileSync(ARQUIVO_JSON, JSON.stringify({ usuarios: [] }, null, 4));
+        try {
+            fs.writeFileSync(ARQUIVO_JSON, JSON.stringify({ usuarios: [] }, null, 4));
+        } catch (e) {
+            console.error("Erro ao criar arquivo inicial:", e);
+            return res.status(500).json({ erro: 'Erro ao inicializar banco de dados.' });
+        }
     }
 
     fs.readFile(ARQUIVO_JSON, 'utf8', (err, data) => {
@@ -50,6 +60,7 @@ app.post('/cadastrar', (req, res) => {
 
         fs.writeFile(ARQUIVO_JSON, JSON.stringify(json, null, 4), (err) => {
             if (err) {
+                console.error("Erro ao gravar:", err);
                 return res.status(500).json({ erro: 'Erro ao salvar no arquivo.' });
             }
             res.json({ sucesso: true });
@@ -57,6 +68,7 @@ app.post('/cadastrar', (req, res) => {
     });
 });
 
-app.listen(3000, () => {
-    console.log('🔥 SISTEMA RODANDO! Acesse no navegador: http://localhost:3000');
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`SISTEMA RODANDO NA PORTA ${PORT}`);
 });

@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PortalDrive - Compartilhamento de Arquivos</title>
+    <style>
+        /* --- RESET E VARIÁVEIS --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --bg-principal: #0a0f1d;
+            --bg-card: rgba(16, 24, 48, 0.75);
+            --azul-primario: #0070f3;
+            --azul-hover: #0051b3;
+            --texto-claro: #f5f7fa;
+            --texto-mutado: #8a99ad;
+            --borda-glass: rgba(255, 255, 255, 0.08);
+            --erro: #ff4a4a;
+            --sucesso: #00e676;
+            --roxo-adm: #7928ca;
+        }
+
+        body {
+            background-color: var(--bg-principal);
+            color: var(--texto-claro);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at 10% 20%, rgba(0, 112, 243, 0.15) 0%, transparent 40%),
+                              radial-gradient(circle at 90% 80%, rgba(0, 81, 179, 0.1) 0%, transparent 50%);
+        }
+
+        .glass-panel {
+            background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--borda-glass);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 450px;
+            padding: 2.5rem;
+            margin: 20px;
+            transition: all 0.4s ease;
+        }
+
+        .auth-logo {
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .auth-logo span { color: var(--azul-primario); }
+
+        .auth-toggle {
+            display: flex;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--borda-glass);
+        }
+
+        .toggle-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: var(--texto-mutado);
+            padding: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: color 0.3s;
+        }
+
+        .toggle-btn.active {
+            color: var(--azul-primario);
+            border-bottom: 2px solid var(--azul-primario);
+            margin-bottom: -2px;
+        }
+
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--texto-mutado);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--borda-glass);
+            border-radius: 8px;
+            color: var(--texto-claro);
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--azul-primario);
+            box-shadow: 0 0 8px rgba(0, 112, 243, 0.4);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: var(--azul-primario);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.1s;
+            margin-top: 1rem;
+        }
+
+        .btn-submit:hover { background: var(--azul-hover); }
+        .btn-submit:active { transform: scale(0.98); }
+
+        .toast-message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: none;
+            text-align: center;
+        }
+
+        .toast-error { background: rgba(255, 74, 74, 0.15); border: 1px solid var(--erro); color: var(--erro); }
+        .toast-sucesso { background: rgba(0, 230, 118, 0.15); border: 1px solid var(--sucesso); color: var(--sucesso); }
+
+        /* --- DASHBOARD PRINCIPAL --- */
+        #main-dashboard, #adm-dashboard {
+            width: 100%;
+            min-height: 100vh;
+            display: none;
+            flex-direction: column;
+            align-self: flex-start;
+        }
+
+        .navbar {
+            width: 100%;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--borda-glass);
+            background: rgba(10, 15, 29, 0.8);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-logo { font-size: 1.5rem; font-weight: 700; }
+        .nav-logo span { color: var(--azul-primario); }
+        .nav-user-zone { display: flex; align-items: center; gap: 1.5rem; }
+
+        .user-badge {
+            background: rgba(255,255,255,0.05);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            border: 1px solid var(--borda-glass);
+        }
+
+        .btn-logout {
+            background: transparent;
+            border: 1px solid var(--erro);
+            color: var(--erro);
+            padding: 6px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover { background: var(--erro); color: white; }
+        .content-container { max-width: 1200px; width: 100%; margin: 2rem auto; padding: 0 1.5rem; flex: 1; }
+        
+        /* --- TABELA DE ARQUIVOS E ADM --- */
+        .files-card { padding: 1.5rem; margin-top: 1rem; }
+        .files-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--borda-glass);
+            color: var(--texto-mutado);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .adm-header {
+            grid-template-columns: 1.5fr 1.5fr 1.5fr 1fr;
+        }
+
+        .file-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem; }
+        .file-item {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            align-items: center;
+            padding: 1rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .adm-item {
+            grid-template-columns: 1.5fr 1.5fr 1.5fr 1fr;
+        }
+
+        .file-item:hover { background: rgba(0, 112, 243, 0.05); border-color: rgba(0, 112, 243, 0.2); }
+        
+        .link-adm {
+            text-align: center;
+            display: block;
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: var(--texto-mutado);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .link-adm:hover { color: var(--azul-primario); }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="auth-screen" class="auth-container glass-panel">
+        <div class="auth-logo">Portal<span>Drive</span></div>
+        
+        <div id="auth-nav-tabs" class="auth-toggle">
+            <button id="tab-login" class="toggle-btn active" onclick="switchTab('login')">Entrar</button>
+            <button id="tab-register" class="toggle-btn" onclick="switchTab('register')">Cadastrar</button>
+        </div>
+
+        <div id="auth-toast" class="toast-message"></div>
+
+        <form id="form-login" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label for="login-email">E-mail ou Usuário</label>
+                <input type="text" id="login-email" class="form-control" placeholder="Seu e-mail ou usuário" required>
+            </div>
+            <div class="form-group">
+                <label for="login-password">Senha</label>
+                <input type="password" id="login-password" class="form-control" placeholder="Sua senha" required>
+            </div>
+            <button type="submit" class="btn-submit">Acessar Sistema</button>
+            <a class="link-adm" onclick="switchTab('adm')">Acessar Painel Administrador</a>
+        </form>
+
+        <form id="form-register" class="hidden" onsubmit="handleRegister(event)">
+            <div class="form-group">
+                <label for="reg-name">Nome Completo</label>
+                <input type="text" id="reg-name" class="form-control" placeholder="Ex: João da Silva" required>
+            </div>
+            <div class="form-group">
+                <label for="reg-user">Nome de Usuário</label>
+                <input type="text" id="reg-user" class="form-control" placeholder="Ex: joaosilva" required>
+            </div>
+            <div class="form-group">
+                <label for="reg-email">E-mail</label>
+                <input type="email" id="reg-email" class="form-control" placeholder="Ex: seu-email@provedor.com" required>
+            </div>
+            <div class="form-group">
+                <label for="reg-password">Senha (Mínimo 8 caracteres)</label>
+                <input type="password" id="reg-password" class="form-control" placeholder="Crie uma senha" required>
+            </div>
+            <button type="submit" class="btn-submit">Concluir Cadastro</button>
+            <a class="link-adm" onclick="switchTab('login')">Voltar para o Login</a>
+        </form>
+
+        <form id="form-adm-login" class="hidden" onsubmit="handleAdmLogin(event)">
+            <div class="form-group">
+                <label for="adm-token">Chave Mestra de Administrador</label>
+                <input type="password" id="adm-token" class="form-control" placeholder="Digite a chave secreta" required>
+            </div>
+            <button type="submit" class="btn-submit" style="background: var(--roxo-adm);">Entrar no Painel ADM</button>
+            <a class="link-adm" onclick="switchTab('login')">Voltar para o Login</a>
+        </form>
+    </div>
+
+    <div id="main-dashboard">
+        <nav class="navbar">
+            <div class="nav-logo">Portal<span>Drive</span></div>
+            <div class="nav-user-zone">
+                <span id="user-display" class="user-badge">Visitante</span>
+                <button class="btn-logout" onclick="handleLogout()">Sair</button>
+            </div>
+        </nav>
+        <main class="content-container">
+            <h2 style="margin-bottom: 1rem;">Seus Arquivos Compartilhados</h2>
+            <div class="files-card glass-panel">
+                <div class="files-header">
+                    <div>Nome do Arquivo</div>
+                    <div>Tamanho</div>
+                    <div>Data</div>
+                    <div>Ação</div>
+                </div>
+                <div class="file-list">
+                    <div class="file-item">
+                        <div>📁 Documentos_Backup.zip</div>
+                        <div>45 MB</div>
+                        <div>Hoje</div>
+                        <div><button class="btn-submit" style="margin:0; padding:5px 10px; font-size:0.8rem;">Baixar</button></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="adm-dashboard">
+        <nav class="navbar" style="border-bottom: 1px solid var(--roxo-adm);">
+            <div class="nav-logo">Painel<span>ADM</span> 🛠️</div>
+            <div class="nav-user-zone">
+                <span class="user-badge" style="border-color: var(--roxo-adm);">Modo Administrador</span>
+                <button class="btn-logout" onclick="handleLogout()">Sair do ADM</button>
+            </div>
+        </nav>
+        <main class="content-container">
+            <h2 style="margin-bottom: 0.5rem;">Gerenciador de Contas Integrado</h2>
+            <p style="color: var(--texto-mutado); margin-bottom: 1.5rem; font-size: 0.9rem;">
+                Exibindo contas salvas no arquivo <code style="color:var(--azul-primario)">contas.json</code>.
+            </p>
+            <div class="files-card glass-panel" style="border-color: rgba(121, 40, 202, 0.3);">
+                <div class="files-header adm-header">
+                    <div>Nome Completo</div>
+                    <div>Usuário</div>
+                    <div>E-mail</div>
+                    <div>Senha Cadastrada</div>
+                </div>
+                <div id="adm-users-container" class="file-list"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let bancoUsuarios = [];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            carregarUsuariosIniciais();
+            verificarSessao();
+        });
+
+        // Modificado para carregar do localStorage primeiro e não travar se o json falhar
+        async function carregarUsuariosIniciais() {
+            const localData = localStorage.getItem("usuarios_db");
+            if (localData) {
+                bancoUsuarios = JSON.parse(localData);
+            }
+            
+            try {
+                const response = await fetch('http://localhost:3000/usuarios');
+                if (response.ok) {
+                    const json = await response.json();
+                    bancoUsuarios = json.usuarios || [];
+                    localStorage.setItem("usuarios_db", JSON.stringify(bancoUsuarios));
+                }
+            } catch (error) {
+                console.log("Aviso: Servidor offline. Usando dados locais temporários.");
+            }
+        }
+
+        function switchTab(tab) {
+            const forms = ['form-login', 'form-register', 'form-adm-login'];
+            forms.forEach(f => {
+                const element = document.getElementById(f);
+                if(element) element.classList.add("hidden");
+            });
+            document.getElementById("auth-nav-tabs").classList.remove("hidden");
+            document.getElementById("auth-toast").style.display = "none";
+
+            if (tab === 'login') {
+                document.getElementById("form-login").classList.remove("hidden");
+                document.getElementById("tab-login").classList.add("active");
+                document.getElementById("tab-register").classList.remove("active");
+            } else if (tab === 'register') {
+                document.getElementById("form-register").classList.remove("hidden");
+                document.getElementById("tab-register").classList.add("active");
+                document.getElementById("tab-login").classList.remove("active");
+            } else if (tab === 'adm') {
+                document.getElementById("auth-nav-tabs").classList.add("hidden");
+                document.getElementById("form-adm-login").classList.remove("hidden");
+            }
+        }
+
+        function exibirToast(mensagem, tipo) {
+            const toast = document.getElementById("auth-toast");
+            toast.className = `toast-message toast-${tipo}`;
+            toast.innerText = mensagem;
+            toast.style.display = "block";
+        }
+
+        function handleAdmLogin(event) {
+            event.preventDefault();
+            const tokenDigitado = document.getElementById("adm-token").value.trim();
+
+            if (tokenDigitado !== "admin123") {
+                exibirToast("Chave Mestra inválida. Acesso negado.", "error");
+                return;
+            }
+
+            sessionStorage.setItem("adm_logado", "true");
+            document.getElementById("form-adm-login").reset();
+            verificarSessao();
+        }
+
+        function renderizarContasNoPainel() {
+            const container = document.getElementById("adm-users-container");
+            container.innerHTML = "";
+
+            if (bancoUsuarios.length === 0) {
+                container.innerHTML = `<p style="text-align:center; color:var(--texto-mutado); padding:1rem;">Nenhuma conta registrada.</p>`;
+                return;
+            }
+
+            bancoUsuarios.forEach(u => {
+                container.innerHTML += `
+                    <div class="file-item adm-item">
+                        <div style="font-weight:600; color:var(--texto-claro)">👤 ${u.nome}</div>
+                        <div style="color:var(--texto-mutado)">@${u.usuario}</div>
+                        <div style="color:var(--azul-primario)">${u.email}</div>
+                        <div style="font-family:monospace; background:rgba(0,0,0,0.3); padding:4px 8px; border-radius:4px; justify-self:start;">${u.senha}</div>
+                    </div>
+                `;
+            });
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            const nome = document.getElementById("reg-name").value.trim();
+            const usuario = document.getElementById("reg-user").value.trim();
+            const email = document.getElementById("reg-email").value.trim();
+            const senha = document.getElementById("reg-password").value;
+
+            if(bancoUsuarios.some(u => u.email.toLowerCase() === email.toLowerCase() || u.usuario.toLowerCase() === usuario.toLowerCase())) {
+                exibirToast("Este e-mail ou usuário já está cadastrado.", "error");
+                return;
+            }
+
+            const novoUsuario = { nome, usuario, email, senha };
+
+            try {
+                const response = await fetch('http://localhost:3000/cadastrar', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(novoUsuario)
+                });
+
+                if (response.ok) {
+                    bancoUsuarios.push(novoUsuario);
+                    localStorage.setItem("usuarios_db", JSON.stringify(bancoUsuarios));
+                    exibirToast("Conta criada e salva no arquivo contas.json!", "sucesso");
+                    document.getElementById("form-register").reset();
+                    setTimeout(() => switchTab('login'), 1500);
+                } else {
+                    exibirToast("Erro ao salvar no servidor.", "error");
+                }
+            } catch (error) {
+                exibirToast("Erro: O servidor Node.js (server.js) está desligado.", "error");
+            }
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const loginInput = document.getElementById("login-email").value.trim().toLowerCase();
+            const senha = document.getElementById("login-password").value;
+
+            const user = bancoUsuarios.find(u => 
+                (u.email.toLowerCase() === loginInput || u.usuario.toLowerCase() === loginInput) && u.senha === senha
+            );
+            
+            if (!user) {
+                exibirToast("Credenciais incorretas.", "error");
+                return;
+            }
+
+            sessionStorage.setItem("usuario_logado", JSON.stringify(user));
+            verificarSessao();
+        }
+
+        function verificarSessao() {
+            const vUser = sessionStorage.getItem("usuario_logado");
+            const vAdm = sessionStorage.getItem("adm_logado");
+
+            document.getElementById("auth-screen").style.display = "none";
+            document.getElementById("main-dashboard").style.display = "none";
+            document.getElementById("adm-dashboard").style.display = "none";
+
+            if (vAdm) {
+                document.getElementById("adm-dashboard").style.display = "flex";
+                renderizarContasNoPainel();
+            } else if (vUser) {
+                const dados = JSON.parse(vUser);
+                document.getElementById("user-display").innerText = `👤 ${dados.nome}`;
+                document.getElementById("main-dashboard").style.display = "flex";
+            } else {
+                document.getElementById("auth-screen").style.display = "block";
+                switchTab('login');
+            }
+        }
+
+        function handleLogout() {
+            sessionStorage.removeItem("usuario_logado");
+            sessionStorage.removeItem("adm_logado");
+            verificarSessao();
+        }
+    </script>
+</body>
+</html>

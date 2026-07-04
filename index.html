@@ -197,7 +197,7 @@
             grid-template-columns: 2fr 1fr 1fr 1fr;
             padding: 0.75rem 1rem;
             border-bottom: 1px solid var(--borda-glass);
-            color: var(--texto-mutado);
+            color: var(--texto-mutated);
             font-size: 0.85rem;
             font-weight: 600;
         }
@@ -229,7 +229,7 @@
             display: block;
             margin-top: 1.5rem;
             font-size: 0.85rem;
-            color: var(--texto-mutado);
+            color: var(--texto-mutated);
             text-decoration: none;
             cursor: pointer;
         }
@@ -356,7 +356,6 @@
             verificarSessao();
         });
 
-        // Modificado para carregar do localStorage primeiro e não travar se o json falhar
         async function carregarUsuariosIniciais() {
             const localData = localStorage.getItem("usuarios_db");
             if (localData) {
@@ -364,7 +363,8 @@
             }
             
             try {
-                const response = await fetch('http://localhost:3000/usuarios');
+                // LINHA CORRIGIDA PARA FUNCIONAR NA NUVEM
+                const response = await fetch('/usuarios');
                 if (response.ok) {
                     const json = await response.json();
                     bancoUsuarios = json.usuarios || [];
@@ -455,7 +455,8 @@
             const novoUsuario = { nome, usuario, email, senha };
 
             try {
-                const response = await fetch('http://localhost:3000/cadastrar', {
+                // LINHA CORRIGIDA PARA FUNCIONAR NA NUVEM
+                const response = await fetch('/cadastrar', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(novoUsuario)

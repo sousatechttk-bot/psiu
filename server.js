@@ -1,74 +1,42 @@
 const express = require('express');
-const fs = require('fs');
 const cors = require('cors');
 const path = require('path');
 
 const app = express();
 
-// Configurações padrão
 app.use(express.json());
 app.use(cors()); 
 
-// CAMINHO ABSOLUTO E SEGURO PARA O ARQUIVO JSON
-const ARQUIVO_JSON = path.join(__dirname, 'contas.json');
+// BANCO DE DADOS EM MEMÓRIA (Funciona 100% na nuvem gratuita)
+let usuariosCadastrados = [];
 
-// Faz o Node mostrar o seu HTML automaticamente
+// Abre o seu HTML automaticamente
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Rota para ler os usuários existentes
+// Rota que entrega a lista de usuários para o painel ADM
 app.get('/usuarios', (req, res) => {
-    if (!fs.existsSync(ARQUIVO_JSON)) {
-        return res.json({ usuarios: [] });
-    }
-    fs.readFile(ARQUIVO_JSON, 'utf8', (err, data) => {
-        if (err) {
-            console.error("Erro ao ler:", err);
-            return res.status(500).json({ erro: "Erro ao ler o arquivo" });
-        }
-        res.json(JSON.parse(data || '{"usuarios":[]}'));
-    });
+    res.json({ usuarios: usuariosCadastrados });
 });
 
-// Rota de Cadastro
+// Rota que cadastra um novo usuário
 app.post('/cadastrar', (req, res) => {
-    const novoUsuario = req.body;
-
-    // Se o arquivo não existir, cria ele na raiz do projeto de forma síncrona antes de ler
-    if (!fs.existsSync(ARQUIVO_JSON)) {
-        try {
-            fs.writeFileSync(ARQUIVO_JSON, JSON.stringify({ usuarios: [] }, null, 4));
-        } catch (e) {
-            console.error("Erro ao criar arquivo inicial:", e);
-            return res.status(500).json({ erro: 'Erro ao inicializar banco de dados.' });
-        }
+    try {
+        const novoUsuario = req.body;
+        
+        // Salva direto na memória do servidor
+        usuariosCadastrados.push(novoUsuario);
+        
+        console.log(`[SUCESSO] Usuário @${novoUsuario.usuario} salvo na memória.`);
+        res.json({ sucesso: true });
+    } catch (error) {
+        console.error("Erro interno:", error);
+        res.status(500).json({ erro: 'Erro ao processar o cadastro.' });
     }
-
-    fs.readFile(ARQUIVO_JSON, 'utf8', (err, data) => {
-        let json = { usuarios: [] };
-
-        if (!err && data) {
-            try {
-                json = JSON.parse(data);
-            } catch (e) {
-                json = { usuarios: [] };
-            }
-        }
-
-        json.usuarios.push(novoUsuario);
-
-        fs.writeFile(ARQUIVO_JSON, JSON.stringify(json, null, 4), (err) => {
-            if (err) {
-                console.error("Erro ao gravar:", err);
-                return res.status(500).json({ erro: 'Erro ao salvar no arquivo.' });
-            }
-            res.json({ sucesso: true });
-        });
-    });
 });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`SISTEMA RODANDO NA PORTA ${PORT}`);
+    console.log(`SISTEMA ONLINE NA PORTA ${PORT}`);
 });
